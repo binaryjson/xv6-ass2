@@ -27,6 +27,13 @@ pinit(void)
   initlock(&ptable.lock, "ptable");
 }
 
+//Default Handler for process
+//input pid, output console message
+void DefualtHandler(int pid)
+ {
+   cprintf("A signal was accepted by process %d \n", pid);
+ }
+
 //PAGEBREAK: 32
 // Look in the process table for an UNUSED proc.
 // If found, change state to EMBRYO and initialize
@@ -100,8 +107,16 @@ userinit(void)
   safestrcpy(p->name, "initcode", sizeof(p->name));
   p->cwd = namei("/");
 
-  p->state = RUNNABLE;
-}
+  // Init proc signal values
+  int FuncIter;
+  for(FuncIter = 0; FuncIter < NUMSIG; ++FuncIter)
+  {
+	p->pending[FuncIter]=0;
+    p->pendingFunctions[FuncIter] = 0;
+  }
+
+   p->state = RUNNABLE;
+ }
 
 // Grow current process's memory by n bytes.
 // Return 0 on success, -1 on failure.
@@ -156,6 +171,15 @@ fork(void)
   np->cwd = idup(proc->cwd);
  
   pid = np->pid;
+
+  // Init proc signal values
+  int FuncIter;
+  for(FuncIter = 0; FuncIter < NUMSIG; ++FuncIter)
+  {
+	  np->pending[FuncIter]=proc->pending[FuncIter];
+    np->pendingFunctions[FuncIter] = proc->pendingFunctions[FuncIter];
+  }
+
   np->state = RUNNABLE;
   safestrcpy(np->name, proc->name, sizeof(proc->name));
   return pid;
@@ -474,4 +498,21 @@ procdump(void)
   }
 }
 
+int
+signal(int signum, sighandler_t handler)
 
+{
+	return 0;
+}
+
+int
+sigsend(int pid, int signum)
+{
+	return 0;
+}
+
+void
+alarm(int ticks)
+{
+
+}

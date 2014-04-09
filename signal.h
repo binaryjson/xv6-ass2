@@ -29,4 +29,3 @@
 #define SIGXCPU	30
 #define SIGXFSZ	31
 
-typedef void (*sighandler_t)(void);

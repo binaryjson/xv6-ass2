@@ -1,5 +1,6 @@
 .svn/
 *.o
+*.d
 *.sym
 *.asm
 _*
@@ -10,3 +11,9 @@ xv6.img
 xv6-*
 *.img
 mkfs
+.cproject
+.project
+.settings/
+entryother
+initcode
+vectors.S
