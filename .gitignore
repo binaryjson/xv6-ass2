@@ -1,0 +1,12 @@
+.svn/
+*.o
+*.sym
+*.asm
+_*
+initcode.out
+bootblock
+kernel
+xv6.img
+xv6-*
+*.img
+mkfs
