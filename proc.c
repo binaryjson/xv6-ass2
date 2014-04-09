@@ -316,8 +316,17 @@ scheduler(void)
       // to release ptable.lock and then reacquire it
       // before jumping back to us.
       proc = p;
-      if(p->alarm!=0 && p->alarm<=ticks)
-    	  p->pending[SIGALRM]=1;
+      if(p->alarm!=0)
+      {
+    	  if(p->alarm<=ticks)
+    	  {
+    		  p->pending[SIGALRM]=1;
+    		  p->alarm=0;
+    	  }
+    	  else
+    		  p->pending[SIGALRM]=0;
+      }
+
       for(i=0;i<NUMSIG;i++)
       {
     	  if(p->pending[i]!=0)
