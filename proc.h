@@ -74,6 +74,7 @@ struct proc {
 	char name[16];               // Process name (debugging)
 	int pending[NUMSIG];				// signals bit alert array
 	sighandler_t pendingFunctions[NUMSIG]; //array of signals functions
+	int alarm;
 };
 
 // Process memory is laid out contiguously, low addresses first:

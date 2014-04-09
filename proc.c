@@ -29,7 +29,7 @@ pinit(void)
 
 //Default Handler for process
 //input pid, output console message
-void DefualtHandler(int pid)
+void DefaultHandler(int pid)
  {
    cprintf("A signal was accepted by process %d \n", pid);
  }
@@ -177,7 +177,7 @@ fork(void)
   for(FuncIter = 0; FuncIter < NUMSIG; ++FuncIter)
   {
 	  np->pending[FuncIter]=proc->pending[FuncIter];
-    np->pendingFunctions[FuncIter] = proc->pendingFunctions[FuncIter];
+	  np->pendingFunctions[FuncIter] = proc->pendingFunctions[FuncIter];
   }
 
   np->state = RUNNABLE;
@@ -300,6 +300,7 @@ void
 scheduler(void)
 {
   struct proc *p;
+  int i;
 
   for(;;){
     // Enable interrupts on this processor.
@@ -315,6 +316,23 @@ scheduler(void)
       // to release ptable.lock and then reacquire it
       // before jumping back to us.
       proc = p;
+      if(p->alarm!=0 && p->alarm<=ticks)
+    	  p->pending[SIGALRM]=1;
+      for(i=0;i<NUMSIG;i++)
+      {
+    	  if(p->pending[i]!=0)
+    	  {
+    		  p->pending[i]=0;
+    		  if(p->pendingFunctions[i]==0)
+    			  DefaultHandler(p->pid);
+    		  else
+    		  {
+    			  register_handler(p->pendingFunctions[i]);//We should think if we want to handle all the signals
+    			  continue;
+    		  }
+    	  }
+      }
+
       switchuvm(p);
       p->state = RUNNING;
       swtch(&cpu->scheduler, proc->context);
@@ -500,19 +518,39 @@ procdump(void)
 
 int
 signal(int signum, sighandler_t handler)
-
 {
+	 if(proc == 0 || signum>=NUMSIG)
+	    return -1;
+
+	 proc->pendingFunctions[signum]=handler;
+	 cprintf("%d, %d\n",proc->pid, signum);
 	return 0;
 }
 
 int
 sigsend(int pid, int signum)
 {
+	struct proc *p;
+	int found=0;
+	if(signum>=NUMSIG)
+		return -1;
+	for(p = ptable.proc; p < &ptable.proc[NPROC]; p++)
+	{
+		if(p->pid==pid)
+		{
+			p->pending[signum]=1;
+			found=1;
+			continue;
+		}
+	}
+	if(found==0)
+		return -1;
 	return 0;
 }
 
 void
 alarm(int ticks)
 {
-
+	if(ticks!=0)
+		proc->alarm=ticks;
 }

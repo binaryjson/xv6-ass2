@@ -24,7 +24,7 @@ char* sbrk(int);
 int sleep(int);
 int uptime(void);
 
-int signal(int signum, sighandler_t handler);
+int signal(int , sighandler_t);
 int sigsend(int , int );
 void alarm(int );
 
