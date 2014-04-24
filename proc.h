@@ -1,5 +1,7 @@
 #include "signal.h"
 
+// Yuval just check commiting
+
 // Segments in proc->gdt.
 #define NSEGS     7
 
