@@ -5,6 +5,7 @@ typedef enum  {T_FREE, T_RUNNING, T_RUNNABLE, T_SLEEPING} uthread_state;
 
 #define STACK_SIZE  4096
 #define MAX_THREAD  64
+#define UTHREAD_QUANTA  5
 
 typedef struct uthread uthread_t, *uthread_p;
 
@@ -14,6 +15,9 @@ struct uthread {
 	int 	       	ebp;        /* current base pointer */
 	char		   *stack;	    /* the thread's stack */
 	uthread_state   state;     	/* running, runnable, sleeping */
+	void (*func)(void *);
+	void* value;
+	int FirstRun;
 };
  
 void uthread_init(void);
