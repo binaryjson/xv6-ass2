@@ -14,43 +14,36 @@ static struct uthread MyThreads[MAX_THREAD];
 static struct uthread * CurrThread;
 static int IDCounter;
 
-#define QUEUESIZE MAX_THREAD
+static RRqueue YieldQueue; 
 
-struct {
-        struct uthread * q[QUEUESIZE];   /* body of queue */
-        int first;                      /* position of first element */
-        int last;                       /* position of last element */
-        int count;                      /* number of queue elements */
-} RRqueue;
-
-void enqueue(struct uthread * x)
+void enqueue(RRqueue* pqueue, struct uthread * x)
 {
-    if (RRqueue.count >= QUEUESIZE)
+    if (pqueue->count >= QUEUESIZE)
     {
           printf(1,"Warning: queue overflow enqueue ");
     }
     else 
     {
-            RRqueue.last = (RRqueue.last+1) % QUEUESIZE;
-            RRqueue.q[ RRqueue.last ] = x;  
-            RRqueue.count = RRqueue.count + 1;
+            pqueue->last = (pqueue->last+1) % QUEUESIZE;
+            pqueue->q[ pqueue->last ] = x;  
+            pqueue->count = pqueue->count + 1;
     }
 
 }
 
-struct uthread * dequeue()
+struct uthread * dequeue(RRqueue* pqueue)
 {
     struct uthread * x;
 
-    if (RRqueue.count <= 0) 
+    if (pqueue->count <= 0) 
     {
     	printf(1, "Warning: empty queue dequeue.\n");
     }
     else 
     {
-            x = RRqueue.q[ RRqueue.first ];
-            RRqueue.first = (RRqueue.first+1) % QUEUESIZE;
-            RRqueue.count = RRqueue.count - 1;
+            x = pqueue->q[ pqueue->first ];
+            pqueue->first = (pqueue->first+1) % QUEUESIZE;
+            pqueue->count = pqueue->count - 1;
     }
 
     return(x);
@@ -59,9 +52,9 @@ struct uthread * dequeue()
 void uthread_init()
 {
 	// Init queue 
-	RRqueue.first = 0;
-	RRqueue.last = QUEUESIZE-1;
-	RRqueue.count = 0;
+	YieldQueue.first = 0;
+	YieldQueue.last = QUEUESIZE-1;
+	YieldQueue.count = 0;
 
 	int i;
 	for(i=0; i < MAX_THREAD; ++i)
@@ -112,7 +105,7 @@ int  uthread_create(void (*func)(void *), void* value)
 	MyThreads[i].value = value;
 	MyThreads[i].FirstRun = 1;
 
-	enqueue(&MyThreads[i]);
+	enqueue(&YieldQueue,&MyThreads[i]);
 
 	return IDCounter;
 }
@@ -136,23 +129,23 @@ void wrapper(void (*func)(void *), void* value)
 	uthread_exit();	
 }
 
-void uthread_yield()
+void inner_uthread_yield(int ReturntoQueue)
 {
-	alarm(UTHREAD_QUANTA);
+	alarm(UTHREAD_QUANTA); // TODO: change to 0 
 
 	STORE_ESP(CurrThread->esp);
 	STORE_EBP(CurrThread->ebp);
 
-	if(CurrThread->state != T_FREE)
+	if((CurrThread->state != T_FREE) && ReturntoQueue)
 	{
 		CurrThread->state = T_RUNNABLE;
 
-		enqueue(CurrThread);
+		enqueue(&YieldQueue,CurrThread);
 	}
 
-	if(RRqueue.count > 0)
+	if(YieldQueue.count > 0)
 	{
-		CurrThread = dequeue();
+		CurrThread = dequeue(&YieldQueue);
 
 		CurrThread->state = T_RUNNING;
 
@@ -171,6 +164,11 @@ void uthread_yield()
 	{
 		exit();
 	}
+}
+
+void uthread_yield()
+{
+	inner_uthread_yield(1);
 }
 
 int  uthred_self()
@@ -203,4 +201,49 @@ int  uthred_join(int tid)
 	CurrThread->state = T_RUNNING;
 
 	return 1;
+}
+
+void binary_semaphore_init(struct binary_semaphore* semaphore, int value)
+{
+	semaphore->ticket = value;
+
+	// Init queue 
+	semaphore->queue.first = 0;
+	semaphore->queue.last = QUEUESIZE-1;
+	semaphore->queue.count = 0;
+}
+
+void binary_semaphore_down(struct binary_semaphore* semaphore)
+{
+	alarm(0);
+
+	if(semaphore->ticket)
+	{
+		--semaphore->ticket;	
+		alarm(UTHREAD_QUANTA);
+	}
+	else
+	{
+		enqueue(&semaphore->queue, CurrThread);
+		inner_uthread_yield(0);
+	}
+}
+
+void binary_semaphore_up(struct binary_semaphore* semaphore)
+{
+	alarm(0);
+
+	if(!semaphore->ticket)
+	{
+		if(semaphore->queue.count > 0)
+		{
+			enqueue(&YieldQueue, dequeue(&semaphore->queue));
+		}
+		else
+		{
+			++semaphore->ticket;	
+		}
+	}
+
+	alarm(UTHREAD_QUANTA);
 }
