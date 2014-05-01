@@ -10,24 +10,25 @@ void test(void *t)
 	
 
   int i = 0;
-	while (i < 10)
+	while (i < 500)
 	{
-		printf(1,"thread child %p \n", t);
+		
 		i++;
-	
-		if(i==5)
-		{
+		
+
+
 			if(uthred_self() == 11)
 			{
-				uthred_join(12);
+				printf(1,"thread child %p calc %d \n", t, i * 2);
+				
 			}
 			else
 			{
-				uthred_join(10);
+				printf(1,"thread child %p calc %d \n", t, 10000 + (i * 2));
 			}
-		}
 
-		sleep(4);
+
+		//sleep(4);
 		//uthread_yield();
 	}
 
@@ -45,7 +46,7 @@ int main(int argc,char** argv)
     
     int i =0;
     while (i < 20){
-          printf(1,"thread father\n");
+  //        printf(1,"thread father\n");
           ++i;
           sleep(2);
        //   uthread_yield();

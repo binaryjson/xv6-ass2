@@ -112,9 +112,12 @@ int  uthread_create(void (*func)(void *), void* value)
 	STORE_EBP(ebp);
 
 	LOAD_ESP(MyThreads[i].esp);
-	LOAD_EBP(MyThreads[i].ebp);
+	//LOAD_EBP(MyThreads[i].ebp);
 
 	asm("pushal");
+
+	STORE_ESP(MyThreads[i].esp);
+	STORE_EBP(MyThreads[i].ebp);
 
 	LOAD_ESP(esp);
 	LOAD_EBP(ebp);*/
@@ -147,10 +150,10 @@ void inner_uthread_yield(int ReturntoQueue)
 {
 	alarm(0);
 
+	asm("pushal");
+
 	STORE_ESP(CurrThread->esp);
 	STORE_EBP(CurrThread->ebp);
-
-	//asm("pushal");
 
 	if((CurrThread->state != T_FREE) && ReturntoQueue)
 	{
@@ -168,7 +171,7 @@ void inner_uthread_yield(int ReturntoQueue)
 		LOAD_ESP(CurrThread->esp);
 		LOAD_EBP(CurrThread->ebp);
 
-		//asm("popal");
+		
 
 		if(CurrThread->FirstRun)
 		{
@@ -177,6 +180,10 @@ void inner_uthread_yield(int ReturntoQueue)
 			alarm(UTHREAD_QUANTA); 
 
 			wrapper(CurrThread->func, CurrThread->value);
+		}
+		else
+		{
+			asm("popal");	
 		}
 		
 		alarm(UTHREAD_QUANTA); 
