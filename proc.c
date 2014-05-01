@@ -176,7 +176,7 @@ fork(void)
   int FuncIter;
   for(FuncIter = 0; FuncIter < NUMSIG; ++FuncIter)
   {
-	  np->pending[FuncIter]=proc->pending[FuncIter];
+	  np->pending[FuncIter]= 0; //proc->pending[FuncIter];
 	  np->pendingFunctions[FuncIter] = proc->pendingFunctions[FuncIter];
   }
 
@@ -333,7 +333,10 @@ scheduler(void)
     	  {
     		  p->pending[i]=0;
     		  if(p->pendingFunctions[i]==0)
+    		  {
+    			  cprintf("%d\n",i);
     			  DefaultHandler(p->pid);
+    		  }
     		  else
     		  {
     			  register_handler(p->pendingFunctions[i]);//We should think if we want to handle all the signals
@@ -532,7 +535,7 @@ signal(int signum, sighandler_t handler)
 	    return -1;
 
 	 proc->pendingFunctions[signum]=handler;
-	 cprintf("%d, %d\n",proc->pid, signum);
+	 //cprintf("%d, %d\n",proc->pid, signum);
 	return 0;
 }
 
@@ -557,9 +560,20 @@ sigsend(int pid, int signum)
 	return 0;
 }
 
+int globalTicks()
+{
+	return ticks;
+}
+
 void
 alarm(int ticks)
 {
+
 	if(ticks!=0)
-		proc->alarm=ticks;
+		proc->alarm=ticks+globalTicks();
+	else
+	{
+		proc->alarm=0;
+		proc->pending[SIGALRM]=0;
+	}
 }
