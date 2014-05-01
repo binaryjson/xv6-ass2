@@ -95,7 +95,6 @@ void run(void *t)
 void printArray()
 {
 	int i=1;
-	binary_semaphore_down(&printing);
 	for(;i<=soldiersAmount;i++)
 	{
 		printf(1,"%c ",Symbols[currentState[state%2][i]]);
@@ -158,6 +157,7 @@ int main(int argc,char** argv)
 
 	while (currentState[0][i]!=F && currentState[1][i]!=F)
 	{
+		binary_semaphore_down(&printing);
 		printArray();
 	}
 
