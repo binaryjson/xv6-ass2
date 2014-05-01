@@ -22,6 +22,8 @@
 #define F 6
 #define E 7 //Empty
 
+char Symbols[7]={'Q','P','R','Z','M','A','F'};
+
 //#define MAX_THREAD 64;
 
 int STATEARRAY[5][6][6]={	{	{Q,P,Q,Q,E,Q},{P,P,E,E,E,P},{Q,E,Q,E,E,E},{Q,E,E,Q,E,Q},{E,E,E,E,E,E},{Q,P,Q,Q,E,E}	}, //Q
@@ -35,7 +37,7 @@ int currentState[2][MAX_THREAD];
 int soldiersAmount;
 int state;
 
-struct binary_semaphore arrival, departure;// binary_semaphore*
+struct binary_semaphore arrival, departure, printing;// binary_semaphore*
 int counter;
 
 int fatherPID;
@@ -64,11 +66,7 @@ void up()
 	}
 	else
 	{
-
-		//sigsend(fatherPID,4);
-		sigsend(fatherPID,4);
-		//state++; //TODO: add signal to main, and ask main to do it
-		//binary_semaphore_up(&arrival);
+		binary_semaphore_up(&printing);
 	}
 }
 
@@ -84,7 +82,6 @@ void run(void *t)
 	{
 		down();
 		myState= currentState[state%2][myNumber];
-		//printf(1,"%d: myState:%d, state:%d\n",myNumber,myState,state);
 		leftState=currentState[state%2][myNumber-1];
 		rightState=currentState[state%2][myNumber+1];
 		currentState[(state+1)%2][myNumber]= STATEARRAY[myState][leftState][rightState];
@@ -93,41 +90,18 @@ void run(void *t)
 	}
 }
 
-/*void test(void *t)
-{
-
-  int i = 0;
-	while (i < 10)
-	{
-		printf(1,"thread child %p \n", t);
-		i++;
-
-		if(i==5)
-		{
-			if(uthred_self() == 11)
-			{
-				uthred_join(12);
-			}
-			else
-			{
-				uthred_join(10);
-			}
-		}
-
-		sleep(4);
-		//uthread_yield();
-	}
-
-}*/
 
 
 void printArray()
 {
 	int i=1;
+	binary_semaphore_down(&printing);
 	for(;i<=soldiersAmount;i++)
-		printf(1,"%d ",currentState[state%2][i]);
+	{
+		printf(1,"%c ",Symbols[currentState[state%2][i]]);
+	}
 	printf(1,"\n");
-	state++; //TODO: add signal to main, and ask main to do it
+	state++;
 	binary_semaphore_up(&arrival);
 
 }
@@ -160,6 +134,7 @@ int main(int argc,char** argv)
 	counter=0;
 	binary_semaphore_init(&arrival,1);
 	binary_semaphore_init(&departure,0);
+	binary_semaphore_init(&printing,0);
 
 	fatherPID=getpid();
 	signal(4,printArray);
@@ -180,20 +155,15 @@ int main(int argc,char** argv)
 			goto out_err;
 	}
 
-	// int myState =0;
-    for(i=1;i<soldiersAmount;i++)
-    {
-		while (currentState[0][i]!=F && currentState[1][i]!=F)
-		{
-			  uthread_yield();
-		}
-    }
 
-	 uthread_yield();
+	while (currentState[0][i]!=F && currentState[1][i]!=F)
+	{
+		printArray();
+	}
 
 
-	//printArray();
-	//printArray();
+	printArray();
+	printArray();
 	uthread_exit();
 
 	out_err:
