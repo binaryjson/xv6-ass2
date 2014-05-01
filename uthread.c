@@ -105,6 +105,20 @@ int  uthread_create(void (*func)(void *), void* value)
 	MyThreads[i].value = value;
 	MyThreads[i].FirstRun = 1;
 
+/*
+	int esp,ebp;
+
+	STORE_ESP(esp);
+	STORE_EBP(ebp);
+
+	LOAD_ESP(MyThreads[i].esp);
+	LOAD_EBP(MyThreads[i].ebp);
+
+	asm("pushal");
+
+	LOAD_ESP(esp);
+	LOAD_EBP(ebp);*/
+
 	enqueue(&YieldQueue,&MyThreads[i]);
 
 	return IDCounter;
@@ -131,10 +145,12 @@ void wrapper(void (*func)(void *), void* value)
 
 void inner_uthread_yield(int ReturntoQueue)
 {
-	alarm(UTHREAD_QUANTA); // TODO: change to 0 
+	alarm(0);
 
 	STORE_ESP(CurrThread->esp);
 	STORE_EBP(CurrThread->ebp);
+
+	//asm("pushal");
 
 	if((CurrThread->state != T_FREE) && ReturntoQueue)
 	{
@@ -152,12 +168,18 @@ void inner_uthread_yield(int ReturntoQueue)
 		LOAD_ESP(CurrThread->esp);
 		LOAD_EBP(CurrThread->ebp);
 
+		//asm("popal");
+
 		if(CurrThread->FirstRun)
 		{
 			CurrThread->FirstRun = 0;
+
+			alarm(UTHREAD_QUANTA); 
+
 			wrapper(CurrThread->func, CurrThread->value);
 		}
 		
+		alarm(UTHREAD_QUANTA); 
 		return;
 	}
 	else
